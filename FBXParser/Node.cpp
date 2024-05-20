@@ -290,29 +290,29 @@ std::pair<DirectX::XMVECTOR, DirectX::XMVECTOR> Node::GetAABB() const
     return _aabb;
 }
 
-const std::vector<DirectX::XMVECTOR>& Node::GetVertices() const
+const std::vector<DirectX::XMVECTOR>& Node::GetVertices(int lod) const
 {
-    return _vertices;
+    return _lods[lod].vertices;
 }
 
-const std::vector<DirectX::XMVECTOR>& Node::GetNormals() const
+const std::vector<DirectX::XMVECTOR>& Node::GetNormals(int lod) const
 {
-    return _normals;
+    return _lods[lod].normals;
 }
 
-const std::vector<DirectX::XMVECTOR>& Node::GetColors() const
+const std::vector<DirectX::XMVECTOR>& Node::GetColors(int lod) const
 {
-    return _colors;
+    return _lods[lod].colors;
 }
 
-const std::vector<DirectX::XMFLOAT2>& Node::GetUVs() const
+const std::vector<DirectX::XMFLOAT2>& Node::GetUVs(int lod) const
 {
-    return _UVs;
+    return _lods[lod].UVs;
 }
 
-const std::vector<UINT64>& Node::GetIndices() const
+const std::vector<UINT64>& Node::GetIndices(int lod) const
 {
-    return _indices;
+    return _lods[lod].indices;
 }
 
 std::string Node::GetTextureName() const
@@ -335,7 +335,7 @@ bool Node::Parse(FbxNode* fbxNode)
         _aabb.first = XMVectorSet(min.mData[0], min.mData[1], min.mData[2], min.mData[3]);
         _aabb.second = XMVectorSet(max.mData[0], max.mData[1], max.mData[2], max.mData[3]);
 
-        ParseMesh(fbxMesh);
+        ParseMesh(fbxMesh, 0);
 
         _textureName = GetDiffuseTextureName(fbxNode);
     }
@@ -351,6 +351,55 @@ bool Node::Parse(FbxNode* fbxNode)
     return true;
 }
 
+bool Node::Parse(std::vector<FbxNode*> fbxLODs)
+{
+    if (fbxLODs.empty())
+    {
+        return false;
+    }
+
+    _lods.resize(fbxLODs.size());
+
+    _name = fbxLODs[0]->GetName();
+
+    _transform = GetNodeLocalTransform(fbxLODs[0]);
+
+    for (int i = 0; i < fbxLODs.size(); ++i)
+    {
+        // Setup mesh
+        if (FbxMesh* fbxMesh = fbxLODs[i]->GetMesh())
+        {
+            FbxVector4 min, max, center;
+
+            fbxLODs[i]->EvaluateGlobalBoundingBoxMinMaxCenter(min, max, center);
+            _aabb.first = XMVectorSet(min.mData[0], min.mData[1], min.mData[2], min.mData[3]);
+            _aabb.second = XMVectorSet(max.mData[0], max.mData[1], max.mData[2], max.mData[3]);
+
+            ParseMesh(fbxMesh, i);
+
+            _textureName = GetDiffuseTextureName(fbxLODs[i]);
+        }
+    }
+
+    // Setup child nodes
+    for (int childIndex = 0; childIndex < fbxLODs[0]->GetChildCount(); ++childIndex)
+    {
+        FbxNode* child = fbxLODs[0]->GetChild(childIndex);
+
+        std::vector<FbxNode*> children;
+        for (int i = 0; i < fbxLODs.size(); ++i)
+        {
+            children.push_back(fbxLODs[i]->FindChild(child->GetName()));
+        }
+
+        auto childNode = std::make_shared<Node>();
+        childNode->Parse(children);
+        _children.push_back(childNode);
+    }
+
+    return true;
+}
+
 bool Node::Save(const std::string& path) const
 {
     std::string rootPath = path + _name + ".node";
@@ -360,21 +409,29 @@ bool Node::Save(const std::string& path) const
     const std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
 
     Json::Value jsonRoot;
-    Json::Value nodes(Json::arrayValue);
-
     jsonRoot["Name"] = _name.c_str();
 
-    if (!_vertices.empty())
+    Json::Value lods(Json::arrayValue);
+    for (int lod = 0; lod < _lods.size(); ++lod)
     {
+        if (_lods[lod].vertices.empty())
+        {
+            continue;
+        }
         // Save mesh data
-        std::string meshFilepath = (_name + ".mesh").c_str();
-        jsonRoot["Mesh"] = meshFilepath.c_str();
-        SaveMesh(path + meshFilepath);
+        const std::string lodName = "LOD" + std::to_string(lod);
+        std::string meshFilepath = (_name + '_' + lodName + ".mesh").c_str();
+        SaveMesh(path + meshFilepath, lod);
+        lods.append(meshFilepath);
 
         // Save material data
         std::string materialFilepath = (_name + ".mat").c_str();
         jsonRoot["Material"] = materialFilepath.c_str();
         SaveMaterial(path + materialFilepath);
+    }
+    if (!lods.empty())
+    {
+        jsonRoot["LODs"] = lods;
     }
 
     Json::Value jsonTransform;
@@ -411,6 +468,7 @@ bool Node::Save(const std::string& path) const
     jsonAABB["Max"]["w"] = XMVectorGetW(_aabb.second);
     jsonRoot["AABB"] = jsonAABB;
 
+    Json::Value nodes(Json::arrayValue);
     for (const auto& node : _children)
     {
         node->Save(path);
@@ -420,7 +478,6 @@ bool Node::Save(const std::string& path) const
 
     writer->write(jsonRoot, &out);
 
-
     return false;
 }
 
@@ -429,36 +486,36 @@ bool Node::SaveChildren(const std::string& path) const
     return false;
 }
 
-bool Node::SaveMesh(const std::string& path) const
+bool Node::SaveMesh(const std::string& path, int lod) const
 {
     std::ofstream out(path, std::fstream::out);
 
-    for (const auto& vertex : _vertices)
+    for (const auto& vertex : _lods[lod].vertices)
     {
         out << "v " << XMVectorGetX(vertex) << ' ' << XMVectorGetY(vertex) << ' ' << XMVectorGetZ(vertex) << ' ' << XMVectorGetW(vertex) << '\n';
     }
 
-    for (const auto& normal : _normals)
+    for (const auto& normal : _lods[lod].normals)
     {
         out << "vn " << XMVectorGetX(normal) << ' ' << XMVectorGetY(normal) << ' ' << XMVectorGetZ(normal) << ' ' << XMVectorGetW(normal) << '\n';
     }
 
-    for (const auto& color : _colors)
+    for (const auto& color : _lods[lod].colors)
     {
         out << "vc " << XMVectorGetX(color) << ' ' << XMVectorGetY(color) << ' ' << XMVectorGetZ(color) << ' ' << 1.0f << '\n';
     }
 
-    for (const auto& uv : _UVs)
+    for (const auto& uv : _lods[lod].UVs)
     {
         out << "vt " << uv.x << ' ' << uv.y << " 0" << '\n';
     }
 
-    for (int i = 0; i < _indices.size(); i += 3)
+    for (int i = 0; i < _lods[lod].indices.size(); i += 3)
     {
         out << "f " <<
-            _indices[i] << '/' << _indices[i] << '/' << _indices[i] << ' ' <<
-            _indices[i + 1] << '/' << _indices[i + 1] << '/' << _indices[i + 1] << ' ' <<
-            _indices[i + 2] << '/' << _indices[i + 2] << '/' << _indices[i + 2] << '\n';
+            _lods[lod].indices[i]     << '/' << _lods[lod].indices[i]     << '/' << _lods[lod].indices[i] << ' ' <<
+            _lods[lod].indices[i + 1] << '/' << _lods[lod].indices[i + 1] << '/' << _lods[lod].indices[i + 1] << ' ' <<
+            _lods[lod].indices[i + 2] << '/' << _lods[lod].indices[i + 2] << '/' << _lods[lod].indices[i + 2] << '\n';
     }
 
     return true;
@@ -478,7 +535,7 @@ bool Node::SaveMaterial(const std::string& path) const
     return true;
 }
 
-bool Node::ParseMesh(FbxMesh* fbxMesh)
+bool Node::ParseMesh(FbxMesh* fbxMesh, int lod)
 {
     for (int polygonIndex = 0; polygonIndex < fbxMesh->GetPolygonCount(); ++polygonIndex)
     {
@@ -496,11 +553,11 @@ bool Node::ParseMesh(FbxMesh* fbxMesh)
             ReadColor(fbxMesh, polygonIndex, fbxMesh->GetPolygonVertex(polygonIndex, vertexIndex), vertexAbsoluteIndex, color);
             readUV(fbxMesh, vertexIndex, fbxMesh->GetTextureUVIndex(polygonIndex, vertexIndex), uv);
 
-            _vertices.push_back(position);
-            _normals.push_back(XMVector3Normalize(normal));
-            _colors.push_back(color);
-            _UVs.push_back(uv);
-            _indices.push_back(vertexAbsoluteIndex);
+            _lods[lod].vertices.push_back(position);
+            _lods[lod].normals.push_back(XMVector3Normalize(normal));
+            _lods[lod].colors.push_back(color);
+            _lods[lod].UVs.push_back(uv);
+            _lods[lod].indices.push_back(vertexAbsoluteIndex);
         }
     }
 
