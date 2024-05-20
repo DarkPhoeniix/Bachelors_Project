@@ -51,8 +51,8 @@ SceneNode::SceneNode()
     , _DXDevice(Core::Device::GetDXDevice())
     , _mesh(nullptr)
     , _texture(nullptr)
-    , _vertexBuffer(nullptr)
-    , _indexBuffer(nullptr)
+    , _vertexBuffer{}
+    , _indexBuffer{}
     , _modelMatrix(nullptr)
     , _AABBVertexBuffer(nullptr)
     , _AABBIndexBuffer(nullptr)
@@ -69,8 +69,8 @@ SceneNode::SceneNode(Scene* scene, SceneNode* parent)
     , _DXDevice(Core::Device::GetDXDevice())
     , _mesh(nullptr)
     , _texture(nullptr)
-    , _vertexBuffer(nullptr)
-    , _indexBuffer(nullptr)
+    , _vertexBuffer{}
+    , _indexBuffer{}
     , _modelMatrix(nullptr)
     , _AABBVertexBuffer(nullptr)
     , _AABBIndexBuffer(nullptr)
@@ -158,10 +158,14 @@ void SceneNode::LoadNode(const std::string& filepath, Core::GraphicsCommandList&
     _AABB.min = XMVectorSet(root["AABB"]["Min"]["x"].asFloat(), root["AABB"]["Min"]["y"].asFloat(), root["AABB"]["Min"]["z"].asFloat(), root["AABB"]["Min"]["w"].asFloat());
     _AABB.max = XMVectorSet(root["AABB"]["Max"]["x"].asFloat(), root["AABB"]["Max"]["y"].asFloat(), root["AABB"]["Max"]["z"].asFloat(), root["AABB"]["Max"]["w"].asFloat());
 
-    if (!root["Mesh"].isNull())
+    auto LODs = root["LODs"];
+    if (!LODs.isNull())
     {
-        _mesh = std::make_shared<Mesh>();
-        _mesh->LoadMesh(_scene->_name + '\\' + root["Mesh"].asCString());
+        for (int i = 0; i < LODs.size(); ++i)
+        {
+            _LODs.push_back(std::make_shared<Mesh>());
+            _LODs.back()->LoadMesh(_scene->_name + '\\' + LODs[i].asCString());
+        }
     }
 
     if (!root["Material"].isNull())
@@ -198,32 +202,34 @@ void SceneNode::LoadNode(const std::string& filepath, Core::GraphicsCommandList&
     }
 
 
-    if (_mesh)
+    if (!_LODs.empty())
     {
-        if (!_mesh->getVertices().empty())
+        for (int i = 0; i < _LODs.size(); ++i)
         {
             ComPtr<ID3D12Resource> vertexBuffer;
-            _UploadData(commandList, &vertexBuffer, _mesh->getVertices().size(), sizeof(VertexData), _mesh->getVertices().data());
-            _vertexBuffer = std::make_shared<Core::Resource>();
-            _vertexBuffer->InitFromDXResource(vertexBuffer);
-            _vertexBuffer->SetName(_name + "_VB");
+            _UploadData(commandList, &vertexBuffer, _LODs[i]->getVertices().size(), sizeof(VertexData), _LODs[i]->getVertices().data());
+            _vertexBuffer.push_back(std::make_shared<Core::Resource>());
+            _vertexBuffer[i]->InitFromDXResource(vertexBuffer);
+            _vertexBuffer[i]->SetName(_name + "_VB");
 
-            _VBO.BufferLocation = _vertexBuffer->OffsetGPU(0);
-            _VBO.SizeInBytes = static_cast<UINT>(_mesh->getVertices().size() * sizeof(_mesh->getVertices()[0]));
-            _VBO.StrideInBytes = sizeof(VertexData);
+            _VBO.emplace_back(D3D12_VERTEX_BUFFER_VIEW());
+            _VBO[i].BufferLocation = _vertexBuffer[i]->OffsetGPU(0);
+            _VBO[i].SizeInBytes = static_cast<UINT>(_LODs[i]->getVertices().size() * sizeof(_LODs[i]->getVertices()[0]));
+            _VBO[i].StrideInBytes = sizeof(VertexData);
         }
 
-        if (!_mesh->getIndices().empty())
+        for (int i = 0; i < _LODs.size(); ++i)
         {
             ComPtr<ID3D12Resource> indexBuffer;
-            _UploadData(commandList, &indexBuffer, _mesh->getIndices().size(), sizeof(UINT), _mesh->getIndices().data());
-            _indexBuffer = std::make_shared<Core::Resource>();
-            _indexBuffer->InitFromDXResource(indexBuffer);
-            _indexBuffer->SetName(_name + "_IB");
+            _UploadData(commandList, &indexBuffer, _LODs[i]->getIndices().size(), sizeof(UINT), _LODs[i]->getIndices().data());
+            _indexBuffer.push_back(std::make_shared<Core::Resource>());
+            _indexBuffer[i]->InitFromDXResource(indexBuffer);
+            _indexBuffer[i]->SetName(_name + "_IB");
 
-            _IBO.BufferLocation = _indexBuffer->OffsetGPU(0);
-            _IBO.Format = DXGI_FORMAT_R32_UINT;
-            _IBO.SizeInBytes = static_cast<UINT>(_mesh->getIndices().size() * sizeof(_mesh->getIndices()[0]));
+            _IBO.emplace_back(D3D12_INDEX_BUFFER_VIEW());
+            _IBO[i].BufferLocation = _indexBuffer[i]->OffsetGPU(0);
+            _IBO[i].Format = DXGI_FORMAT_R32_UINT;
+            _IBO[i].SizeInBytes = static_cast<UINT>(_LODs[i]->getIndices().size() * sizeof(_LODs[i]->getIndices()[0]));
         }
     }
 }
@@ -277,7 +283,7 @@ void SceneNode::_UploadData(Core::GraphicsCommandList& commandList,
 
 void SceneNode::_DrawCurrentNode(Core::GraphicsCommandList& commandList, const FrustumVolume& frustum) const
 {
-    if (!_mesh)
+    if (_LODs.empty())
     {
         return;
     }
@@ -306,8 +312,8 @@ void SceneNode::_DrawCurrentNode(Core::GraphicsCommandList& commandList, const F
     commandList.SetSRV(3, _modelMatrix->OffsetGPU(0));
 
     commandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    commandList.SetVertexBuffer(0, _VBO);
-    commandList.SetIndexBuffer(_IBO);
+    commandList.SetVertexBuffer(0, _VBO[0]);
+    commandList.SetIndexBuffer(_IBO[0]);
 
-    commandList.DrawIndexed(_mesh->getIndices().size());
+    commandList.DrawIndexed(_LODs[0]->getIndices().size());
 }

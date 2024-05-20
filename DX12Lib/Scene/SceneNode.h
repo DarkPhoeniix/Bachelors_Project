@@ -37,16 +37,17 @@ private:
     ComPtr<ID3D12Device2> _DXDevice;
 
     std::shared_ptr<Mesh> _mesh;
+    std::vector<std::shared_ptr<Mesh>> _LODs;
     AABBVolume _AABB;
 
     std::shared_ptr<Core::Texture> _texture;
 
     std::shared_ptr<Core::Resource> _modelMatrix;
-    std::shared_ptr<Core::Resource> _vertexBuffer;
-    std::shared_ptr<Core::Resource> _indexBuffer;
+    std::vector<std::shared_ptr<Core::Resource>> _vertexBuffer;
+    std::vector<std::shared_ptr<Core::Resource>> _indexBuffer;
 
-    D3D12_VERTEX_BUFFER_VIEW _VBO;
-    D3D12_INDEX_BUFFER_VIEW _IBO;
+    std::vector<D3D12_VERTEX_BUFFER_VIEW> _VBO;
+    std::vector<D3D12_INDEX_BUFFER_VIEW>_IBO;
 
     std::shared_ptr<Core::Resource> _AABBVertexBuffer;
     std::shared_ptr<Core::Resource> _AABBIndexBuffer;
