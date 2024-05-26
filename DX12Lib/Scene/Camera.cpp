@@ -41,6 +41,11 @@ const XMMATRIX& Camera::ViewProjection() const
 	return _view * _projection;
 }
 
+const DirectX::XMVECTOR& Camera::Position() const
+{
+	return _position;
+}
+
 const XMVECTOR& Camera::Right() const
 {
 	return _right;
@@ -205,6 +210,7 @@ void Camera::_buildView()
 		XMVectorGetX(_up), XMVectorGetY(_up), XMVectorGetZ(_up), y, 
 		XMVectorGetX(_look), XMVectorGetY(_look), XMVectorGetZ(_look), z,
 		0.0f, 0.0f, 0.0f, 1.0f));
+	auto v = XMMatrixLookAtLH(_position, _target, _up);
 
 	_frustum.transform = _view;
 	_updateFrustum();

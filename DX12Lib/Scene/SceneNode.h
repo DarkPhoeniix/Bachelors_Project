@@ -16,8 +16,7 @@ public:
     SceneNode(Scene* scene, SceneNode* parent = nullptr);
     ~SceneNode();
 
-    void RunOcclusion(Core::GraphicsCommandList& commandList, const FrustumVolume& frustum) const override;
-    void Draw(Core::GraphicsCommandList& commandList, const FrustumVolume& frustum) const override;
+    void Draw(Core::GraphicsCommandList& commandList, const Camera& camera) const override;
     void DrawAABB(Core::GraphicsCommandList& commandList) const override;
 
     const AABBVolume& GetAABB() const;
@@ -31,7 +30,7 @@ protected:
                      size_t elementSize,
                      const void* bufferData,
                      D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE);
-    void _DrawCurrentNode(Core::GraphicsCommandList& commandList, const FrustumVolume& frustum) const;
+    void _DrawCurrentNode(Core::GraphicsCommandList& commandList, const Camera& camera) const;
 
 private:
     ComPtr<ID3D12Device2> _DXDevice;

@@ -422,7 +422,7 @@ bool Node::Save(const std::string& path) const
         const std::string lodName = "LOD" + std::to_string(lod);
         std::string meshFilepath = (_name + '_' + lodName + ".mesh").c_str();
         SaveMesh(path + meshFilepath, lod);
-        lods.append(meshFilepath);
+        lods.append(meshFilepath.c_str());
 
         // Save material data
         std::string materialFilepath = (_name + ".mat").c_str();

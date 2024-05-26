@@ -17,7 +17,7 @@ using namespace Core;
 
 namespace
 {
-    constexpr float MOVE_SPEED = 200.0f;
+    constexpr float MOVE_SPEED = 1000.0f;
 
     struct Ambient
     {
@@ -49,8 +49,9 @@ bool DXRenderer::LoadContent(TaskGPU* loadTask)
 
     // Camera Setup
     {
-        XMVECTOR pos = XMVectorSet(-30.0f, 40.0f, -50.0f, 1.0f);
-        XMVECTOR target = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
+        //XMVECTOR pos = XMVectorSet(-30.0f, 40.0f, -50.0f, 1.0f);
+        XMVECTOR pos = XMVectorSet(-240.0f, 160.0f, -190.0f, 1.0f);
+        XMVECTOR target = XMVectorSet(0.0f, -40.0f, 0.0f, 1.0f);
         XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 
         RECT windowSize;
@@ -86,7 +87,7 @@ bool DXRenderer::LoadContent(TaskGPU* loadTask)
         loadTask->SetName("Upload Data");
         Core::GraphicsCommandList* commandList = loadTask->GetCommandLists().front();
 
-        _scene.LoadScene("FruitBowl\\FruitBowl.scene", *commandList);
+        _scene.LoadScene("TestScene_LOD0\\TestScene_LOD0.scene", *commandList);
 
         commandList->Close();
 
@@ -161,61 +162,11 @@ void DXRenderer::OnRender(Events::RenderEvent& renderEvent, Frame& frame)
         commandList->Close();
     }
 
-    // Execute depth pre-test 
-    {
-        TaskGPU* task = frame.CreateTask(D3D12_COMMAND_LIST_TYPE_DIRECT, &_depthPretestPipeline);
-        task->SetName("depth-test");
-        task->AddDependency("clean");
-
-        Core::GraphicsCommandList* commandList = task->GetCommandLists().front();
-        PIXBeginEvent(commandList->GetDXCommandList().Get(), 2, "Depth test");
-
-        commandList->SetPipelineState(_depthPretestPipeline);
-        commandList->SetGraphicsRootSignature(_depthPretestPipeline);
-
-        commandList->SetViewport(_camera.GetViewport());
-        commandList->SetRenderTarget(&rtv, &dsv);
-
-        XMMATRIX viewProjMatrix = XMMatrixMultiply(_camera.View(), _camera.Projection());
-        commandList->SetConstants(0, sizeof(XMMATRIX) / 4, &viewProjMatrix);
-        commandList->SetCBV(2, _ambient->OffsetGPU(0));
-
-        _scene.Draw(*commandList, _camera.GetViewFrustum());
-
-        PIXEndEvent(commandList->GetDXCommandList().Get());
-        commandList->Close();
-    }
-
-    //// Execute occlusion culling
-    //{
-    //    TaskGPU* task = frame.CreateTask(D3D12_COMMAND_LIST_TYPE_DIRECT, &_occlusionPipeline);
-    //    task->SetName("occlusion");
-    //    task->AddDependency("depth-test");
-
-    //    Core::GraphicsCommandList* commandList = task->GetCommandLists().front();
-    //    PIXBeginEvent(commandList->GetDXCommandList().Get(), 3, "Occlusion culling");
-
-    //    commandList->SetPipelineState(_occlusionPipeline);
-    //    commandList->SetGraphicsRootSignature(_occlusionPipeline);
-
-    //    commandList->SetViewport(_camera.GetViewport());
-    //    commandList->SetRenderTarget(&rtv, &dsv);
-
-    //    XMMATRIX viewProjMatrix = XMMatrixMultiply(_camera.View(), _camera.Projection());
-    //    commandList->SetConstants(0, sizeof(XMMATRIX) / 4, &viewProjMatrix);
-    //    commandList->SetCBV(2, _ambient->OffsetGPU(0));
-
-    //    _scene.RunOcclusion(*commandList, _camera.GetViewFrustum());
-
-    //    PIXEndEvent(commandList->GetDXCommandList().Get());
-    //    commandList->Close();
-    //}
-
     // Execute the TriangleRender shader
     {
         TaskGPU* task = frame.CreateTask(D3D12_COMMAND_LIST_TYPE_DIRECT, &_renderPipeline);
         task->SetName("render");
-        task->AddDependency("depth-test");
+        task->AddDependency("clean");
 
         Core::GraphicsCommandList* commandList = task->GetCommandLists().front();
         PIXBeginEvent(commandList->GetDXCommandList().Get(), 4, "Render");
@@ -230,7 +181,7 @@ void DXRenderer::OnRender(Events::RenderEvent& renderEvent, Frame& frame)
         commandList->SetConstants(0, sizeof(XMMATRIX) / 4, &viewProjMatrix);
         commandList->SetCBV(2, _ambient->OffsetGPU(0));
 
-        _scene.Draw(*commandList, _camera.GetViewFrustum());
+        _scene.Draw(*commandList, _camera);
 
 #if defined(_DEBUG)
         commandList->SetPipelineState(_AABBpipeline);

@@ -5,6 +5,7 @@
 
 #include "DXObjects/Texture.h"
 #include "DXObjects/GraphicsCommandList.h"
+#include "Scene/Camera.h"
 #include "Scene/Scene.h"
 #include "Volumes/FrustumVolume.h"
 
@@ -91,24 +92,14 @@ SceneNode::~SceneNode()
     }
 }
 
-void SceneNode::RunOcclusion(Core::GraphicsCommandList& commandList, const FrustumVolume& frustum) const
+void SceneNode::Draw(Core::GraphicsCommandList& commandList, const Camera& camera) const
 {
     for (const std::shared_ptr<ISceneNode> node : _childNodes)
     {
-        node->RunOcclusion(commandList, frustum);
+        node->Draw(commandList, camera);
     }
 
-    _scene->_occlusionQuery.Run(this, commandList, frustum);
-}
-
-void SceneNode::Draw(Core::GraphicsCommandList& commandList, const FrustumVolume& frustum) const
-{
-    for (const std::shared_ptr<ISceneNode> node : _childNodes)
-    {
-        node->Draw(commandList, frustum);
-    }
-
-    _DrawCurrentNode(commandList, frustum);
+    _DrawCurrentNode(commandList, camera);
 }
 
 void SceneNode::DrawAABB(Core::GraphicsCommandList& commandList) const
@@ -118,7 +109,7 @@ void SceneNode::DrawAABB(Core::GraphicsCommandList& commandList) const
         node->DrawAABB(commandList);
     }
 
-    if (!_mesh)
+    if (_LODs.empty())
     {
         return;
     }
@@ -281,14 +272,14 @@ void SceneNode::_UploadData(Core::GraphicsCommandList& commandList,
     }
 }
 
-void SceneNode::_DrawCurrentNode(Core::GraphicsCommandList& commandList, const FrustumVolume& frustum) const
+void SceneNode::_DrawCurrentNode(Core::GraphicsCommandList& commandList, const Camera& camera) const
 {
     if (_LODs.empty())
     {
         return;
     }
 
-    if (!Intersect(frustum, _AABB))
+    if (!Intersect(camera.GetViewFrustum(), _AABB))
     {
         return;
     }
@@ -305,15 +296,19 @@ void SceneNode::_DrawCurrentNode(Core::GraphicsCommandList& commandList, const F
         commandList.SetConstant(1, false);
     }
 
-    _scene->_occlusionQuery.SetPredication(this, commandList);
+    DirectX::XMVECTOR center = _AABB.min + ((_AABB.max - _AABB.min) * 0.5f);
+    float distance = DirectX::XMVectorGetX(DirectX::XMVector3Length(camera.Position() - center));
+
+    int lod = distance / 200.0f;
+    int lodIndex = (lod >= _LODs.size()) ? (_LODs.size() - 1) : lod;
 
     XMMATRIX* modelMatrixData = (XMMATRIX*)_modelMatrix->Map();
     *modelMatrixData = GetGlobalTransform();
     commandList.SetSRV(3, _modelMatrix->OffsetGPU(0));
 
     commandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    commandList.SetVertexBuffer(0, _VBO[0]);
-    commandList.SetIndexBuffer(_IBO[0]);
+    commandList.SetVertexBuffer(0, _VBO[lodIndex]);
+    commandList.SetIndexBuffer(_IBO[lodIndex]);
 
-    commandList.DrawIndexed(_LODs[0]->getIndices().size());
+    commandList.DrawIndexed(_LODs[lodIndex]->getIndices().size());
 }

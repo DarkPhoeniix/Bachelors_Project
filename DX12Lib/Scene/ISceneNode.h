@@ -1,7 +1,8 @@
 #pragma once
 
-class FrustumVolume;
+class Camera;
 class Scene;
+
 namespace Core
 {
     class GraphicsCommandList;
@@ -19,8 +20,7 @@ public:
 
     DirectX::XMMATRIX GetGlobalTransform() const;
 
-    virtual void RunOcclusion(Core::GraphicsCommandList& commandList, const FrustumVolume& frustum) const = 0;
-    virtual void Draw(Core::GraphicsCommandList& commandList, const FrustumVolume& frustum) const = 0;
+    virtual void Draw(Core::GraphicsCommandList& commandList, const Camera& camera) const = 0;
     virtual void DrawAABB(Core::GraphicsCommandList& commandList) const = 0;
 
     virtual void LoadNode(const std::string& filepath, Core::GraphicsCommandList& commandList) = 0;
