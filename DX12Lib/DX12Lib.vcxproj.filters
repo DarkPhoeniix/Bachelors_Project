@@ -123,6 +123,9 @@
     <ClCompile Include="DXObjects\ResourceTable.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="DXObjects\StatisticsQuery.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Utility\Helpers.h">
@@ -276,6 +279,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="DXObjects\ResourceTable.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DXObjects\StatisticsQuery.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -42,10 +42,12 @@ DXRenderer::~DXRenderer()
 
 bool DXRenderer::LoadContent(TaskGPU* loadTask)
 {
-    _depthPretestPipeline.Parse("PipelineDescriptions\\DepthPretestPipeline.tech");
-    _occlusionPipeline.Parse("PipelineDescriptions\\OcclusionCullingPipeline.tech");
     _renderPipeline.Parse("PipelineDescriptions\\TriangleRenderPipeline.tech");
     _AABBpipeline.Parse("PipelineDescriptions\\AABBRenderPipeline.tech");
+
+#if defined(_DEBUG)
+    _statsQuery.Create();
+#endif
 
     // Camera Setup
     {
@@ -117,8 +119,10 @@ void DXRenderer::OnUpdate(Events::UpdateEvent& updateEvent)
 {
     static uint64_t frameCount = 0;
     static double totalTime = 0.0;
+    static double totalTimeStat = 0.0;
 
     totalTime += updateEvent.elapsedTime;
+    totalTimeStat += updateEvent.elapsedTime;
     frameCount++;
 
     if (totalTime > 1.0)
@@ -130,6 +134,21 @@ void DXRenderer::OnUpdate(Events::UpdateEvent& updateEvent)
 
         frameCount = 0;
         totalTime = 0.0;
+    }
+
+    if (totalTimeStat > 5.0)
+    {
+        totalTimeStat = 0.0;
+
+#if defined(_DEBUG)
+        D3D12_QUERY_DATA_PIPELINE_STATISTICS stat = _statsQuery.GetStatistics();
+        std::string d = "Primitives rendered: " + std::to_string(stat.IAPrimitives) + "\n";
+        OutputDebugStringA(d.c_str());
+        d = "VS invocs: " + std::to_string(stat.VSInvocations) + "\n";
+        OutputDebugStringA(d.c_str());
+        d = "PS invocs: " + std::to_string(stat.PSInvocations) + "\n";
+        OutputDebugStringA(d.c_str());
+#endif
     }
 
     _deltaTime = updateEvent.elapsedTime;
@@ -171,6 +190,9 @@ void DXRenderer::OnRender(Events::RenderEvent& renderEvent, Frame& frame)
         Core::GraphicsCommandList* commandList = task->GetCommandLists().front();
         PIXBeginEvent(commandList->GetDXCommandList().Get(), 4, "Render");
 
+#if defined(_DEBUG)
+        _statsQuery.BeginQuery(*commandList);
+#endif
         commandList->SetPipelineState(_renderPipeline);
         commandList->SetGraphicsRootSignature(_renderPipeline);
 
@@ -184,6 +206,9 @@ void DXRenderer::OnRender(Events::RenderEvent& renderEvent, Frame& frame)
         _scene.Draw(*commandList, _camera);
 
 #if defined(_DEBUG)
+        _statsQuery.EndQuery(*commandList);
+        _statsQuery.ResolveQueryData(*commandList);
+
         commandList->SetPipelineState(_AABBpipeline);
         commandList->SetGraphicsRootSignature(_AABBpipeline);
         commandList->SetConstants(1, sizeof(XMMATRIX) / 4, &viewProjMatrix);
@@ -194,7 +219,6 @@ void DXRenderer::OnRender(Events::RenderEvent& renderEvent, Frame& frame)
         PIXEndEvent(commandList->GetDXCommandList().Get());
         commandList->Close();
     }
-
     // Present
     {
         TaskGPU* task = frame.CreateTask(D3D12_COMMAND_LIST_TYPE_DIRECT, nullptr);
