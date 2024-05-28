@@ -236,6 +236,9 @@ void Mesh::LoadMesh(const std::string& filepath)
 
     std::string input;
     std::ifstream in(filepath, std::ios_base::in);
+
+    ASSERT(in.is_open(), "Failed to open file: " + filepath);
+
     while (!in.eof())
     {
         input = "";
@@ -281,7 +284,7 @@ void Mesh::LoadMesh(const std::string& filepath)
             for (int i = 0; i < 3; ++i)
             {
                 in >> v >> sym >> vn >> sym >> vt;
-                
+
                 VertexData vertex;
                 vertex.Position = points[v];
                 vertex.Normal = normals[vn];

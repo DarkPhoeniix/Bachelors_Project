@@ -9,9 +9,9 @@ public:
     ~Scene();
 
     std::string GetName() const;
-    std::shared_ptr<Node> GetRootNode() const;
+    std::shared_ptr<Node> GetRootNodes() const;
 
-    bool Parse(FbxScene* fbxScene);
+    bool Parse(const std::vector<FbxScene*>& fbxScene);
 
     bool Save(const std::string& path) const;
 

@@ -11,14 +11,14 @@ public:
     int Run(int argc, char* argv[]);
 
 private:
-    int Parse(const std::string& filepath);
-    bool ImportFbxScene(const std::string& filepath);
-    bool ParseFbxScene(const std::string& filepath);
+    int Parse(const std::vector<std::string>& filepath);
+    bool ImportFbxScene(const std::vector<std::string>& filepath);
+    bool ParseFbxScene();
 
     int Save();
 
     Scene _scene;
 
-    FbxScene* _fbxScene;
+    std::vector<FbxScene*> _fbxLODScenes;
     FbxManager* _fbxManager;
 };

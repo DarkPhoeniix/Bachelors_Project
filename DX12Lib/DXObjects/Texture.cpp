@@ -120,7 +120,7 @@ namespace Core
     std::shared_ptr<Texture> Texture::LoadFromFile(std::string filepath)
     {
         std::filesystem::path path(filepath);
-        if (ASSERT(std::filesystem::exists(path), "Texture \"" + filepath + "\" doesn't exist. Using " + ERROR_TEXTURE))
+        if (LOG_WARNING(std::filesystem::exists(path), "Texture \"" + filepath + "\" doesn't exist. Using " + ERROR_TEXTURE))
         {
             return nullptr;
         }

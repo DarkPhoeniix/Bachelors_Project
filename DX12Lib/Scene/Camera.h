@@ -17,6 +17,7 @@ public:
 	const DirectX::XMMATRIX& Projection() const;
 	const DirectX::XMMATRIX& ViewProjection() const;
 
+	const DirectX::XMVECTOR& Position() const;
 	const DirectX::XMVECTOR& Right() const;
 	const DirectX::XMVECTOR& Up() const;
 	const DirectX::XMVECTOR& Look() const;
