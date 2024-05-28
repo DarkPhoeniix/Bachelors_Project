@@ -17,7 +17,7 @@ using namespace Core;
 
 namespace
 {
-    constexpr float MOVE_SPEED = 200.0f;
+    constexpr float MOVE_SPEED = 1000.0f;
 
     struct Ambient
     {
@@ -88,7 +88,7 @@ bool DXRenderer::LoadContent(TaskGPU* loadTask)
         loadTask->SetName("Upload Data");
         Core::GraphicsCommandList* commandList = loadTask->GetCommandLists().front();
 
-        _scene.LoadScene("TestCube\\TestCube.scene", *commandList);
+        _scene.LoadScene("FruitBowl\\FruitBowl.scene", *commandList);
 
         commandList->Close();
 
