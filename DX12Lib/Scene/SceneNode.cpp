@@ -279,17 +279,17 @@ void SceneNode::_DrawCurrentNode(Core::GraphicsCommandList& commandList, const C
         return;
     }
 
-    if (!Intersect(camera.GetViewFrustum(), _AABB))
-    {
-        return;
-    }
+    //if (!Intersect(camera.GetViewFrustum(), _AABB))
+    //{
+    //    return;
+    //}
 
     if (_texture)
     {
         commandList.SetDescriptorHeaps({ _scene->_texturesTable->GetDescriptorHeap().GetDXDescriptorHeap().Get() });
 
         commandList.SetConstant(1, true);
-        commandList.SetDescriptorTable(4, _scene->_texturesTable->GetResourceGPUHandle(_texture->GetName()));
+        commandList.SetDescriptorTable(5, _scene->_texturesTable->GetResourceGPUHandle(_texture->GetName()));
     }
     else
     {
@@ -304,7 +304,7 @@ void SceneNode::_DrawCurrentNode(Core::GraphicsCommandList& commandList, const C
 
     XMMATRIX* modelMatrixData = (XMMATRIX*)_modelMatrix->Map();
     *modelMatrixData = GetGlobalTransform();
-    commandList.SetSRV(3, _modelMatrix->OffsetGPU(0));
+    commandList.SetSRV(4, _modelMatrix->OffsetGPU(0));
 
     commandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     commandList.SetVertexBuffer(0, _VBO[lodIndex]);

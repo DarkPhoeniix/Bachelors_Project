@@ -24,6 +24,12 @@ namespace
         XMFLOAT4 Up;
         XMFLOAT4 Down;
     };
+
+    struct CameraDesc
+    {
+        XMFLOAT4 Pos;
+        XMFLOAT4 Dir;
+    };
 }
 
 DXRenderer::DXRenderer(HWND windowHandle)
@@ -31,6 +37,7 @@ DXRenderer::DXRenderer(HWND windowHandle)
     , _windowHandle(windowHandle)
     , _contentLoaded(false)
     , _ambient(nullptr)
+    , _cameraDesc(nullptr)
     , _isCameraMoving(false)
     , _deltaTime(0.0f)
 {   }
@@ -43,6 +50,7 @@ DXRenderer::~DXRenderer()
 bool DXRenderer::LoadContent(TaskGPU* loadTask)
 {
     _renderPipeline.Parse("PipelineDescriptions\\TriangleRenderPipeline.tech");
+    _depthPretestPipeline.Parse("PipelineDescriptions\\DepthPretestPipeline.tech");
     _AABBpipeline.Parse("PipelineDescriptions\\AABBRenderPipeline.tech");
 
 #if defined(_DEBUG)
@@ -52,8 +60,8 @@ bool DXRenderer::LoadContent(TaskGPU* loadTask)
     // Camera Setup
     {
         //XMVECTOR pos = XMVectorSet(-30.0f, 40.0f, -50.0f, 1.0f);
-        XMVECTOR pos = XMVectorSet(-240.0f, 160.0f, -190.0f, 1.0f);
-        XMVECTOR target = XMVectorSet(0.0f, -40.0f, 0.0f, 1.0f);
+        XMVECTOR pos = XMVectorSet(-85.0f, 49.0f, -345.0f, 1.0f);
+        XMVECTOR target = XMVectorSet(30.0f, -40.0f, 0.0f, 1.0f);
         XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 
         RECT windowSize;
@@ -67,6 +75,20 @@ bool DXRenderer::LoadContent(TaskGPU* loadTask)
     }
 
     // Setup semi-ambient light parameters
+    {
+        EResourceType CBVType = EResourceType::Dynamic | EResourceType::Buffer | EResourceType::StrideAlignment;
+
+        ResourceDescription desc;
+        desc.SetResourceType(CBVType);
+        desc.SetSize({ sizeof(CameraDesc), 1 });
+        desc.SetStride(1);
+        desc.SetFormat(DXGI_FORMAT::DXGI_FORMAT_UNKNOWN);
+        _cameraDesc = std::make_shared<Resource>(desc);
+        _cameraDesc->CreateCommitedResource();
+        _cameraDesc->SetName("_cameraDesc");
+    }
+
+    // Setup camera parameters
     {
         EResourceType CBVType = EResourceType::Dynamic | EResourceType::Buffer | EResourceType::StrideAlignment;
 
@@ -89,7 +111,7 @@ bool DXRenderer::LoadContent(TaskGPU* loadTask)
         loadTask->SetName("Upload Data");
         Core::GraphicsCommandList* commandList = loadTask->GetCommandLists().front();
 
-        _scene.LoadScene("TestScene_LOD0\\TestScene_LOD0.scene", *commandList);
+        _scene.LoadScene("TestOcclusion\\TestOcclusion.scene", *commandList);
 
         commandList->Close();
 
@@ -181,11 +203,36 @@ void DXRenderer::OnRender(Events::RenderEvent& renderEvent, Frame& frame)
         commandList->Close();
     }
 
+    // Execute the Depth prepass
+    {
+        TaskGPU* task = frame.CreateTask(D3D12_COMMAND_LIST_TYPE_DIRECT, &_depthPretestPipeline);
+        task->SetName("depth prepass");
+        task->AddDependency("clean");
+
+        Core::GraphicsCommandList* commandList = task->GetCommandLists().front();
+        PIXBeginEvent(commandList->GetDXCommandList().Get(), 4, "Depth Prepass");
+
+        commandList->SetPipelineState(_depthPretestPipeline);
+        commandList->SetGraphicsRootSignature(_depthPretestPipeline);
+
+        commandList->SetViewport(_camera.GetViewport());
+        commandList->SetRenderTarget(&rtv, &dsv);
+
+        XMMATRIX viewProjMatrix = XMMatrixMultiply(_camera.View(), _camera.Projection());
+        commandList->SetConstants(0, sizeof(XMMATRIX) / 4, &viewProjMatrix);
+
+        _scene.Draw(*commandList, _camera);
+
+        PIXEndEvent(commandList->GetDXCommandList().Get());
+        commandList->Close();
+    }
+
     // Execute the TriangleRender shader
     {
         TaskGPU* task = frame.CreateTask(D3D12_COMMAND_LIST_TYPE_DIRECT, &_renderPipeline);
         task->SetName("render");
-        task->AddDependency("clean");
+        task->AddDependency("depth prepass");
+        //task->AddDependency("clean");
 
         Core::GraphicsCommandList* commandList = task->GetCommandLists().front();
         PIXBeginEvent(commandList->GetDXCommandList().Get(), 4, "Render");
@@ -203,6 +250,11 @@ void DXRenderer::OnRender(Events::RenderEvent& renderEvent, Frame& frame)
         commandList->SetConstants(0, sizeof(XMMATRIX) / 4, &viewProjMatrix);
         commandList->SetCBV(2, _ambient->OffsetGPU(0));
 
+        CameraDesc* desc = (CameraDesc*)_cameraDesc->Map();
+        desc->Pos = { DirectX::XMVectorGetX(_camera.Position()), DirectX::XMVectorGetY(_camera.Position()), DirectX::XMVectorGetZ(_camera.Position()), 1.0f };
+        desc->Dir = { DirectX::XMVectorGetX(_camera.Look()), DirectX::XMVectorGetY(_camera.Look()), DirectX::XMVectorGetZ(_camera.Look()), 0.0f };
+        commandList->SetCBV(3, _cameraDesc->OffsetGPU(0));
+
         _scene.Draw(*commandList, _camera);
 
 #if defined(_DEBUG)
@@ -219,6 +271,7 @@ void DXRenderer::OnRender(Events::RenderEvent& renderEvent, Frame& frame)
         PIXEndEvent(commandList->GetDXCommandList().Get());
         commandList->Close();
     }
+
     // Present
     {
         TaskGPU* task = frame.CreateTask(D3D12_COMMAND_LIST_TYPE_DIRECT, nullptr);

@@ -307,6 +307,7 @@
     <None Include="PipelineDescriptions\AABBRenderPipeline.depth" />
     <None Include="Resource.aps" />
     <None Include="packages.config" />
+    <None Include="Shaders\PBR_Funcs.hlsli" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Resources\dxapp.ico">

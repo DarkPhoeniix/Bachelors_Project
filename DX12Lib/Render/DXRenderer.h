@@ -34,9 +34,11 @@ private:
     HWND _windowHandle;
 
     Core::RootSignature _renderPipeline;
+    Core::RootSignature _depthPretestPipeline;
     Core::RootSignature _AABBpipeline;
 
     std::shared_ptr<Core::Resource> _ambient;
+    std::shared_ptr<Core::Resource> _cameraDesc;
 
     Core::DescriptorHeap _texDescHeap;
     std::shared_ptr<Core::Texture> _tex;

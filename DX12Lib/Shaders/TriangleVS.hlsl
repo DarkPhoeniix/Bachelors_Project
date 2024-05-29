@@ -14,13 +14,15 @@
     "RootConstants(num32BitConstants=16, b0, visibility=SHADER_VISIBILITY_ALL), " \
     "RootConstants(num32BitConstants=1, b1, visibility=SHADER_VISIBILITY_ALL), " \
     "CBV(b2, visibility=SHADER_VISIBILITY_ALL), " \
+    "CBV(b3, visibility=SHADER_VISIBILITY_ALL), " \
 	"SRV(t0, visibility=SHADER_VISIBILITY_ALL), " \
     "DescriptorTable(SRV(t1),visibility=SHADER_VISIBILITY_PIXEL)," \
     "StaticSampler(s0," \
         "addressU = TEXTURE_ADDRESS_MIRROR," \
         "addressV = TEXTURE_ADDRESS_MIRROR," \
         "addressW = TEXTURE_ADDRESS_MIRROR," \
-        "filter = FILTER_MIN_MAG_MIP_LINEAR)," \
+        "filter = FILTER_MIN_MAG_MIP_LINEAR," \
+        "maxAnisotropy=16)"
 
 struct ConstantsDesc
 {
