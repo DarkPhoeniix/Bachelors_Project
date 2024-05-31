@@ -35,6 +35,8 @@ private:
 
     Core::RootSignature _renderPipeline;
     Core::RootSignature _AABBpipeline;
+    Core::RootSignature _depthPrepassPipeline;
+    Core::RootSignature _occlusionPipeline;
 
     std::shared_ptr<Core::Resource> _ambient;
 

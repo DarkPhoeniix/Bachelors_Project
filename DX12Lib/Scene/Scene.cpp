@@ -26,10 +26,20 @@ Scene::Scene()
     descriptorHeapDesc.SetNodeMask(1);
 
     _texturesTable = std::make_shared<Core::ResourceTable>(descriptorHeapDesc, heapDesc);
+
+    _occlusionQuery.Create(1024);
 }
 
 Scene::~Scene()
 {   }
+
+void Scene::RunOcclusion(Core::GraphicsCommandList& commandList, const FrustumVolume& frustum)
+{
+    for (auto& node : _rootNodes)
+    {
+        node->RunOcclusion(commandList, frustum);
+    }
+}
 
 void Scene::Draw(Core::GraphicsCommandList& commandList, const Camera& camera)
 {
@@ -38,6 +48,26 @@ void Scene::Draw(Core::GraphicsCommandList& commandList, const Camera& camera)
     for (auto& node : _rootNodes)
     {
         node->Draw(commandList, camera);
+    }
+}
+
+void Scene::DrawOccluders(Core::GraphicsCommandList& commandList, const Camera& camera)
+{
+    commandList.SetDescriptorHeaps({ _texturesTable->GetDescriptorHeap().GetDXDescriptorHeap().Get() });
+
+    for (auto& node : _rootNodes)
+    {
+        node->DrawOccluders(commandList, camera);
+    }
+}
+
+void Scene::DrawOccludees(Core::GraphicsCommandList& commandList, const Camera& camera)
+{
+    commandList.SetDescriptorHeaps({ _texturesTable->GetDescriptorHeap().GetDXDescriptorHeap().Get() });
+
+    for (auto& node : _rootNodes)
+    {
+        node->DrawOccludees(commandList, camera);
     }
 }
 

@@ -364,6 +364,12 @@ bool Node::Parse(std::vector<FbxNode*> fbxLODs)
 
     _transform = GetNodeLocalTransform(fbxLODs[0]);
 
+    FbxProperty prop = fbxLODs[0]->FindProperty("is_occluder");
+    if (prop.IsValid())
+    {
+        _isOccluder = prop.EvaluateValue<bool>();
+    }
+
     for (int i = 0; i < fbxLODs.size(); ++i)
     {
         // Setup mesh
@@ -467,6 +473,8 @@ bool Node::Save(const std::string& path) const
     jsonAABB["Max"]["z"] = XMVectorGetZ(_aabb.second);
     jsonAABB["Max"]["w"] = XMVectorGetW(_aabb.second);
     jsonRoot["AABB"] = jsonAABB;
+
+    jsonRoot["IsOccluder"] = _isOccluder;
 
     Json::Value nodes(Json::arrayValue);
     for (const auto& node : _children)

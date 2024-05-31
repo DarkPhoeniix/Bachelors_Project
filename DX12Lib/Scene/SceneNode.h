@@ -16,10 +16,14 @@ public:
     SceneNode(Scene* scene, SceneNode* parent = nullptr);
     ~SceneNode();
 
+    void RunOcclusion(Core::GraphicsCommandList& commandList, const FrustumVolume& frustum) const override;
     void Draw(Core::GraphicsCommandList& commandList, const Camera& camera) const override;
+    void DrawOccluders(Core::GraphicsCommandList& commandList, const Camera& camera) const override;
+    void DrawOccludees(Core::GraphicsCommandList& commandList, const Camera& camera) const override;
     void DrawAABB(Core::GraphicsCommandList& commandList) const override;
 
-    const AABBVolume& GetAABB() const;
+    const AABBVolume& GetAABB() const override;
+    bool IsOccluder() const override;
 
     void LoadNode(const std::string& filepath, Core::GraphicsCommandList& commandList) override;
 
@@ -38,6 +42,7 @@ private:
     std::shared_ptr<Mesh> _mesh;
     std::vector<std::shared_ptr<Mesh>> _LODs;
     AABBVolume _AABB;
+    bool _isOccluder;
 
     std::shared_ptr<Core::Texture> _texture;
 

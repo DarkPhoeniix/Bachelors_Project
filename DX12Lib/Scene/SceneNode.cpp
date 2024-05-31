@@ -52,6 +52,7 @@ SceneNode::SceneNode()
     , _DXDevice(Core::Device::GetDXDevice())
     , _mesh(nullptr)
     , _texture(nullptr)
+    , _isOccluder(false)
     , _vertexBuffer{}
     , _indexBuffer{}
     , _modelMatrix(nullptr)
@@ -70,6 +71,7 @@ SceneNode::SceneNode(Scene* scene, SceneNode* parent)
     , _DXDevice(Core::Device::GetDXDevice())
     , _mesh(nullptr)
     , _texture(nullptr)
+    , _isOccluder(false)
     , _vertexBuffer{}
     , _indexBuffer{}
     , _modelMatrix(nullptr)
@@ -92,6 +94,19 @@ SceneNode::~SceneNode()
     }
 }
 
+void SceneNode::RunOcclusion(Core::GraphicsCommandList& commandList, const FrustumVolume& frustum) const
+{
+    for (const std::shared_ptr<ISceneNode> node : _childNodes)
+    {
+        node->RunOcclusion(commandList, frustum);
+    }
+
+    if (!_isOccluder)
+    {
+        _scene->_occlusionQuery.Run(this, commandList, frustum);
+    }
+}
+
 void SceneNode::Draw(Core::GraphicsCommandList& commandList, const Camera& camera) const
 {
     for (const std::shared_ptr<ISceneNode> node : _childNodes)
@@ -100,6 +115,32 @@ void SceneNode::Draw(Core::GraphicsCommandList& commandList, const Camera& camer
     }
 
     _DrawCurrentNode(commandList, camera);
+}
+
+void SceneNode::DrawOccluders(Core::GraphicsCommandList& commandList, const Camera& camera) const
+{
+    for (const std::shared_ptr<ISceneNode> node : _childNodes)
+    {
+        node->Draw(commandList, camera);
+    }
+
+    if (_isOccluder)
+    {
+        _DrawCurrentNode(commandList, camera);
+    }
+}
+
+void SceneNode::DrawOccludees(Core::GraphicsCommandList& commandList, const Camera& camera) const
+{
+    for (const std::shared_ptr<ISceneNode> node : _childNodes)
+    {
+        node->Draw(commandList, camera);
+    }
+
+    if (!_isOccluder)
+    {
+        _DrawCurrentNode(commandList, camera);
+    }
 }
 
 void SceneNode::DrawAABB(Core::GraphicsCommandList& commandList) const
@@ -127,6 +168,11 @@ void SceneNode::DrawAABB(Core::GraphicsCommandList& commandList) const
 const AABBVolume& SceneNode::GetAABB() const
 {
     return _AABB;
+}
+
+bool SceneNode::IsOccluder() const
+{
+    return _isOccluder;
 }
 
 void SceneNode::LoadNode(const std::string& filepath, Core::GraphicsCommandList& commandList)
@@ -169,6 +215,8 @@ void SceneNode::LoadNode(const std::string& filepath, Core::GraphicsCommandList&
             _scene->_UploadTexture(_texture.get(), commandList);
         }
     }
+
+    _isOccluder = root["IsOccluder"].asBool();
 
     auto children = root["Nodes"];
     for (int i = 0; i < children.size(); ++i)
@@ -295,6 +343,8 @@ void SceneNode::_DrawCurrentNode(Core::GraphicsCommandList& commandList, const C
     {
         commandList.SetConstant(1, false);
     }
+
+    _scene->_occlusionQuery.SetPredication(this, commandList);
 
     DirectX::XMVECTOR center = _AABB.min + ((_AABB.max - _AABB.min) * 0.5f);
     float distance = DirectX::XMVectorGetX(DirectX::XMVector3Length(camera.Position() - center));

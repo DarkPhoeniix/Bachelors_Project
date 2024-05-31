@@ -48,4 +48,5 @@ private:
     std::pair<DirectX::XMVECTOR, DirectX::XMVECTOR> _aabb;
     std::vector<LOD> _lods;
     std::string _textureName;
+    bool _isOccluder;
 };

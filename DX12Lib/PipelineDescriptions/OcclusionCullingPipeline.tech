@@ -3,44 +3,16 @@
 
 	"IsGraphicsPipeline": true,
 
-	"TopologyType": "triangle",
+	"TopologyType": "point",
 
 	"Blend": "PipelineDescriptions\\OcclusionCullingPipeline.blend",
 	"Raster": "PipelineDescriptions\\TriangleRenderPipeline.raster",
-	"Depth": "PipelineDescriptions\\TriangleRenderPipeline.depth",
+	"Depth": "PipelineDescriptions\\AABBRenderPipeline.depth",
 
 	"RenderTargets": [],
 	"DepthBuffer": "BackBufferDepth",
-	"Layout": [
-		{
-			"Name": "POSITION",
-			"Stream": 0,
-			"Offset": 0,
-			"Format": "float3",
-			"SemanticIndex": 0
-		},
-		{
-			"Name": "NORMAL",
-			"Stream": 0,
-			"Offset": 12,
-			"Format": "float3",
-			"SemanticIndex": 0
-		},
-		{
-			"Name": "COLOR",
-			"Stream": 0,
-			"Offset": 24,
-			"Format": "float4",
-			"SemanticIndex": 0
-		},
-		{
-			"Name": "TEXCOORD",
-			"Stream": 0,
-			"Offset": 40,
-			"Format": "float2",
-			"SemanticIndex": 0
-		}
-	],
+	"Layout": null,
 
-	"VS": "TriangleVS.cso"
+	"VS": "TestAABB_vs.cso",
+	"GS": "TestAABB_gs.cso"
 }
