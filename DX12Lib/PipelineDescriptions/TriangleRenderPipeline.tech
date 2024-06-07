@@ -44,6 +44,6 @@
 		}
 	],
 
-	"VS": "TriangleVS.cso",
-	"PS": "TrianglePS.cso"
+	"VS": "TriangleMesh_vs.cso",
+	"PS": "TriangleMesh_ps.cso"
 }

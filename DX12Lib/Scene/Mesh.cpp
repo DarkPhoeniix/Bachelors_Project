@@ -216,12 +216,22 @@ namespace
     }
 }
 
-const std::vector<VertexData>& Mesh::getVertices() const
+void Mesh::SetVertices(const std::vector<VertexData>& vertexData)
+{
+    _rawVertexData = vertexData;
+}
+
+const std::vector<VertexData>& Mesh::GetVertices() const
 {
     return _rawVertexData;
 }
 
-const std::vector<UINT>& Mesh::getIndices() const
+void Mesh::SetIndices(const std::vector<UINT>& indexData)
+{
+    _rawIndexData = indexData;
+}
+
+const std::vector<UINT>& Mesh::GetIndices() const
 {
     return _rawIndexData;
 }

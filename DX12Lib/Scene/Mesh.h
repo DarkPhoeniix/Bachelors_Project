@@ -16,8 +16,11 @@ public:
     Mesh() = default;
     ~Mesh() = default;
 
-    const std::vector<VertexData>& getVertices() const;
-    const std::vector<UINT>& getIndices() const;
+    void SetVertices(const std::vector<VertexData>& vertexData);
+    const std::vector<VertexData>& GetVertices() const;
+
+    void SetIndices(const std::vector<UINT>& indexData);
+    const std::vector<UINT>& GetIndices() const;
 
     void LoadMesh(const std::string& filepath);
 

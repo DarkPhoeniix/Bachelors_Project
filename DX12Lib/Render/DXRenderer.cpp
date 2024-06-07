@@ -55,7 +55,8 @@ bool DXRenderer::LoadContent(TaskGPU* loadTask)
     {
         //XMVECTOR pos = XMVectorSet(-30.0f, 40.0f, -50.0f, 1.0f);
         XMVECTOR pos = XMVectorSet(-90.0f, 37.0f, -230.0f, 1.0f);
-        XMVECTOR target = XMVectorSet(90.0f, -42.0f, 103.0f, 1.0f);
+        //XMVECTOR target = XMVectorSet(90.0f, -42.0f, 103.0f, 1.0f);
+        XMVECTOR target = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
         XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 
         RECT windowSize;
@@ -91,7 +92,7 @@ bool DXRenderer::LoadContent(TaskGPU* loadTask)
         loadTask->SetName("Upload Data");
         Core::GraphicsCommandList* commandList = loadTask->GetCommandLists().front();
 
-        _scene.LoadScene("TestOcclusion\\TestOcclusion.scene", *commandList);
+        _scene.LoadScene("To\\To.scene", *commandList);
 
         commandList->Close();
 
@@ -202,16 +203,7 @@ void DXRenderer::OnRender(Events::RenderEvent& renderEvent, Frame& frame)
         commandList->SetConstants(0, sizeof(XMMATRIX) / 4, &viewProjMatrix);
         commandList->SetCBV(2, _ambient->OffsetGPU(0));
 
-#if defined(_DEBUG)
-        _statsQuery.BeginQuery(*commandList);
-#endif
-
         _scene.DrawOccluders(*commandList, _camera);
-
-#if defined(_DEBUG)
-        _statsQuery.EndQuery(*commandList);
-        _statsQuery.ResolveQueryData(*commandList);
-#endif
 
         PIXEndEvent(commandList->GetDXCommandList().Get());
         commandList->Close();
@@ -221,7 +213,7 @@ void DXRenderer::OnRender(Events::RenderEvent& renderEvent, Frame& frame)
     {
         TaskGPU* task = frame.CreateTask(D3D12_COMMAND_LIST_TYPE_DIRECT, &_renderPipeline);
         task->SetName("occlusion");
-        task->AddDependency("clean");
+        task->AddDependency("depth");
 
         Core::GraphicsCommandList* commandList = task->GetCommandLists().front();
         PIXBeginEvent(commandList->GetDXCommandList().Get(), 4, "Occlusion Culling");
@@ -233,17 +225,9 @@ void DXRenderer::OnRender(Events::RenderEvent& renderEvent, Frame& frame)
         commandList->SetRenderTarget(&rtv, &dsv);
 
         XMMATRIX viewProjMatrix = XMMatrixMultiply(_camera.View(), _camera.Projection());
-        commandList->SetConstants(1, sizeof(XMMATRIX) / 4, &viewProjMatrix);
+        commandList->SetConstants(0, sizeof(XMMATRIX) / 4, &viewProjMatrix);
 
-#if defined(_DEBUG)
-        _statsQuery.BeginQuery(*commandList);
-#endif
         _scene.RunOcclusion(*commandList, _camera.GetViewFrustum());
-
-#if defined(_DEBUG)
-        _statsQuery.EndQuery(*commandList);
-        _statsQuery.ResolveQueryData(*commandList);
-#endif
 
         PIXEndEvent(commandList->GetDXCommandList().Get());
         commandList->Close();
@@ -253,7 +237,7 @@ void DXRenderer::OnRender(Events::RenderEvent& renderEvent, Frame& frame)
     {
         TaskGPU* task = frame.CreateTask(D3D12_COMMAND_LIST_TYPE_DIRECT, &_renderPipeline);
         task->SetName("render");
-        task->AddDependency("depth");
+        task->AddDependency("occlusion");
 
         Core::GraphicsCommandList* commandList = task->GetCommandLists().front();
         PIXBeginEvent(commandList->GetDXCommandList().Get(), 4, "Render");

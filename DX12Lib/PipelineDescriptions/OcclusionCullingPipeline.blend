@@ -2,7 +2,7 @@
     "RenderTargets":
     [
         {
-            "BlendEnable": false,
+            "BlendEnable": true,
             "SrcBlend": "D3D12_BLEND_ONE",
             "DestBlend": "D3D12_BLEND_ZERO",
             "BlendOp": "D3D12_BLEND_OP_ADD",
@@ -11,7 +11,7 @@
             "DestBlendAlpha": "D3D12_BLEND_ZERO",
             "BlendOpAlpha": "D3D12_BLEND_OP_ADD",
 
-            "RenderTargetWriteMask": "D3D12_COLOR_WRITE_DISABLE",
+            "RenderTargetWriteMask": "D3D12_COLOR_WRITE_ALL",
 
             "LogicOpEnable": false,
             "LogicOp": "D3D12_LOGIC_OP_NOOP"

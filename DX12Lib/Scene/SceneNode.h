@@ -21,6 +21,7 @@ public:
     void DrawOccluders(Core::GraphicsCommandList& commandList, const Camera& camera) const override;
     void DrawOccludees(Core::GraphicsCommandList& commandList, const Camera& camera) const override;
     void DrawAABB(Core::GraphicsCommandList& commandList) const override;
+    void TestAABB(Core::GraphicsCommandList& commandList) const override;
 
     const AABBVolume& GetAABB() const override;
     bool IsOccluder() const override;

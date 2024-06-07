@@ -53,14 +53,10 @@ namespace Core
             index = _queryResources.size() - 1;
         }
 
-        commandList.SetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_POINTLIST);
-
-        const AABBVolume& aabb = node->GetAABB();
-        commandList.SetConstants(0, 3, &aabb.min.m128_f32, 0);
-        commandList.SetConstants(0, 3, &aabb.max.m128_f32, 4);
+        commandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
         commandList.BeginQuery(_queryHeap, D3D12_QUERY_TYPE_BINARY_OCCLUSION, index);
-        commandList.Draw(1);
+        node->TestAABB(commandList);
         commandList.EndQuery(_queryHeap, D3D12_QUERY_TYPE_BINARY_OCCLUSION, index);
 
         commandList.TransitionBarrier(_queryResults[index], D3D12_RESOURCE_STATE_COPY_DEST);

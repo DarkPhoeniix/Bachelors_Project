@@ -29,6 +29,7 @@ public:
     virtual void DrawOccluders(Core::GraphicsCommandList& commandList, const Camera& camera) const = 0;
     virtual void DrawOccludees(Core::GraphicsCommandList& commandList, const Camera& camera) const = 0;
     virtual void DrawAABB(Core::GraphicsCommandList& commandList) const = 0;
+    virtual void TestAABB(Core::GraphicsCommandList& commandList) const = 0;
 
     virtual const AABBVolume& GetAABB() const = 0;
     virtual bool IsOccluder() const = 0;

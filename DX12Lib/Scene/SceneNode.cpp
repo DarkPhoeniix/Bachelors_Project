@@ -121,7 +121,7 @@ void SceneNode::DrawOccluders(Core::GraphicsCommandList& commandList, const Came
 {
     for (const std::shared_ptr<ISceneNode> node : _childNodes)
     {
-        node->Draw(commandList, camera);
+        node->DrawOccluders(commandList, camera);
     }
 
     if (_isOccluder)
@@ -134,7 +134,7 @@ void SceneNode::DrawOccludees(Core::GraphicsCommandList& commandList, const Came
 {
     for (const std::shared_ptr<ISceneNode> node : _childNodes)
     {
-        node->Draw(commandList, camera);
+        node->DrawOccludees(commandList, camera);
     }
 
     if (!_isOccluder)
@@ -165,6 +165,19 @@ void SceneNode::DrawAABB(Core::GraphicsCommandList& commandList) const
     commandList.Draw(1);
 }
 
+void SceneNode::TestAABB(Core::GraphicsCommandList& commandList) const
+{
+    XMMATRIX* modelMatrixData = (XMMATRIX*)_modelMatrix->Map();
+    *modelMatrixData = GetGlobalTransform();
+    commandList.SetSRV(3, _modelMatrix->OffsetGPU(0));
+
+    commandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    commandList.SetVertexBuffer(0, _AABBVBO);
+    commandList.SetIndexBuffer(_AABBIBO);
+
+    commandList.DrawIndexed(_AABB.mesh->GetIndices().size());
+}
+
 const AABBVolume& SceneNode::GetAABB() const
 {
     return _AABB;
@@ -192,8 +205,34 @@ void SceneNode::LoadNode(const std::string& filepath, Core::GraphicsCommandList&
         root["Transform"]["r3"]["x"].asFloat(), root["Transform"]["r3"]["y"].asFloat(), root["Transform"]["r3"]["z"].asFloat(), root["Transform"]["r3"]["w"].asFloat()
     );
 
-    _AABB.min = XMVectorSet(root["AABB"]["Min"]["x"].asFloat(), root["AABB"]["Min"]["y"].asFloat(), root["AABB"]["Min"]["z"].asFloat(), root["AABB"]["Min"]["w"].asFloat());
-    _AABB.max = XMVectorSet(root["AABB"]["Max"]["x"].asFloat(), root["AABB"]["Max"]["y"].asFloat(), root["AABB"]["Max"]["z"].asFloat(), root["AABB"]["Max"]["w"].asFloat());
+    {
+        DirectX::XMVECTOR min = XMVectorSet(root["AABB"]["Min"]["x"].asFloat(), root["AABB"]["Min"]["y"].asFloat(), root["AABB"]["Min"]["z"].asFloat(), root["AABB"]["Min"]["w"].asFloat());
+        DirectX::XMVECTOR max = XMVectorSet(root["AABB"]["Max"]["x"].asFloat(), root["AABB"]["Max"]["y"].asFloat(), root["AABB"]["Max"]["z"].asFloat(), root["AABB"]["Max"]["w"].asFloat());
+        
+        _AABB = AABBVolume(min, max);
+
+        ComPtr<ID3D12Resource> vertexBuffer;
+        _UploadData(commandList, &vertexBuffer, _AABB.mesh->GetVertices().size(), sizeof(VertexData), _AABB.mesh->GetVertices().data());
+        _AABBVertexBuffer = std::make_shared<Core::Resource>();
+        _AABBVertexBuffer->InitFromDXResource(vertexBuffer);
+        _AABBVertexBuffer->SetName(_name + "_AABB_VB");
+
+        _AABBVBO = D3D12_VERTEX_BUFFER_VIEW();
+        _AABBVBO.BufferLocation = _AABBVertexBuffer->OffsetGPU(0);
+        _AABBVBO.SizeInBytes = static_cast<UINT>(_AABB.mesh->GetVertices().size() * sizeof(_AABB.mesh->GetVertices()[0]));
+        _AABBVBO.StrideInBytes = sizeof(VertexData);
+
+        ComPtr<ID3D12Resource> indexBuffer;
+        _UploadData(commandList, &indexBuffer, _AABB.mesh->GetIndices().size(), sizeof(UINT), _AABB.mesh->GetIndices().data());
+        _AABBIndexBuffer = std::make_shared<Core::Resource>();
+        _AABBIndexBuffer->InitFromDXResource(indexBuffer);
+        _AABBIndexBuffer->SetName(_name + "_AABB_IB");
+
+        _AABBIBO = D3D12_INDEX_BUFFER_VIEW();
+        _AABBIBO.BufferLocation = _AABBIndexBuffer->OffsetGPU(0);
+        _AABBIBO.Format = DXGI_FORMAT_R32_UINT;
+        _AABBIBO.SizeInBytes = static_cast<UINT>(_AABB.mesh->GetIndices().size() * sizeof(_AABB.mesh->GetIndices()[0]));
+    }
 
     auto LODs = root["LODs"];
     if (!LODs.isNull())
@@ -246,21 +285,21 @@ void SceneNode::LoadNode(const std::string& filepath, Core::GraphicsCommandList&
         for (int i = 0; i < _LODs.size(); ++i)
         {
             ComPtr<ID3D12Resource> vertexBuffer;
-            _UploadData(commandList, &vertexBuffer, _LODs[i]->getVertices().size(), sizeof(VertexData), _LODs[i]->getVertices().data());
+            _UploadData(commandList, &vertexBuffer, _LODs[i]->GetVertices().size(), sizeof(VertexData), _LODs[i]->GetVertices().data());
             _vertexBuffer.push_back(std::make_shared<Core::Resource>());
             _vertexBuffer[i]->InitFromDXResource(vertexBuffer);
             _vertexBuffer[i]->SetName(_name + "_VB");
 
             _VBO.emplace_back(D3D12_VERTEX_BUFFER_VIEW());
             _VBO[i].BufferLocation = _vertexBuffer[i]->OffsetGPU(0);
-            _VBO[i].SizeInBytes = static_cast<UINT>(_LODs[i]->getVertices().size() * sizeof(_LODs[i]->getVertices()[0]));
+            _VBO[i].SizeInBytes = static_cast<UINT>(_LODs[i]->GetVertices().size() * sizeof(_LODs[i]->GetVertices()[0]));
             _VBO[i].StrideInBytes = sizeof(VertexData);
         }
 
         for (int i = 0; i < _LODs.size(); ++i)
         {
             ComPtr<ID3D12Resource> indexBuffer;
-            _UploadData(commandList, &indexBuffer, _LODs[i]->getIndices().size(), sizeof(UINT), _LODs[i]->getIndices().data());
+            _UploadData(commandList, &indexBuffer, _LODs[i]->GetIndices().size(), sizeof(UINT), _LODs[i]->GetIndices().data());
             _indexBuffer.push_back(std::make_shared<Core::Resource>());
             _indexBuffer[i]->InitFromDXResource(indexBuffer);
             _indexBuffer[i]->SetName(_name + "_IB");
@@ -268,7 +307,7 @@ void SceneNode::LoadNode(const std::string& filepath, Core::GraphicsCommandList&
             _IBO.emplace_back(D3D12_INDEX_BUFFER_VIEW());
             _IBO[i].BufferLocation = _indexBuffer[i]->OffsetGPU(0);
             _IBO[i].Format = DXGI_FORMAT_R32_UINT;
-            _IBO[i].SizeInBytes = static_cast<UINT>(_LODs[i]->getIndices().size() * sizeof(_LODs[i]->getIndices()[0]));
+            _IBO[i].SizeInBytes = static_cast<UINT>(_LODs[i]->GetIndices().size() * sizeof(_LODs[i]->GetIndices()[0]));
         }
     }
 }
@@ -360,5 +399,5 @@ void SceneNode::_DrawCurrentNode(Core::GraphicsCommandList& commandList, const C
     commandList.SetVertexBuffer(0, _VBO[lodIndex]);
     commandList.SetIndexBuffer(_IBO[lodIndex]);
 
-    commandList.DrawIndexed(_LODs[lodIndex]->getIndices().size());
+    commandList.DrawIndexed(_LODs[lodIndex]->GetIndices().size());
 }

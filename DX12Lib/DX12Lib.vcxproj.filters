@@ -129,6 +129,9 @@
     <ClCompile Include="DXObjects\OcclusionQuery.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Scene\Volumes\AABBVolume.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Utility\Helpers.h">
@@ -292,8 +295,8 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Shaders\TrianglePS.hlsl" />
-    <FxCompile Include="Shaders\TriangleVS.hlsl" />
+    <FxCompile Include="Shaders\TriangleMesh_ps.hlsl" />
+    <FxCompile Include="Shaders\TriangleMesh_vs.hlsl" />
     <FxCompile Include="Shaders\Compute.hlsl" />
     <FxCompile Include="Shaders\AABB_vs.hlsl" />
     <FxCompile Include="Shaders\AABB_gs.hlsl" />
