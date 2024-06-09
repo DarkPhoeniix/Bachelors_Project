@@ -1,52 +1,68 @@
 
-#define AABB_RootSig \
+// The Vertex Shader (VS) stage is responsible for transforming the vertex data 
+// from object-space into clip-space, performing (skeletal) animation or computing 
+// per-vertex lighting.
+
+#define Sprite_RootSig \
 	"RootFlags " \
 	"( " \
-		"DENY_VERTEX_SHADER_ROOT_ACCESS | " \
+		"ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT | " \
+		"DENY_GEOMETRY_SHADER_ROOT_ACCESS | " \
 		"DENY_HULL_SHADER_ROOT_ACCESS | " \
 		"DENY_DOMAIN_SHADER_ROOT_ACCESS " \
 	"), " \
-	"RootConstants(num32BitConstants=8, b0, visibility=SHADER_VISIBILITY_ALL), " \
-	"RootConstants(num32BitConstants=16, b1 , visibility=SHADER_VISIBILITY_ALL), " \
+    "RootConstants(num32BitConstants=16, b0, visibility=SHADER_VISIBILITY_ALL), " \
+    "RootConstants(num32BitConstants=1, b1, visibility=SHADER_VISIBILITY_ALL), " \
+    "CBV(b2, visibility=SHADER_VISIBILITY_ALL), " \
+	"SRV(t0, visibility=SHADER_VISIBILITY_ALL), " \
+    "DescriptorTable(SRV(t1),visibility=SHADER_VISIBILITY_PIXEL)," \
     "StaticSampler(s0," \
-        "addressU = TEXTURE_ADDRESS_CLAMP," \
-        "addressV = TEXTURE_ADDRESS_CLAMP," \
-        "addressW = TEXTURE_ADDRESS_CLAMP," \
+        "addressU = TEXTURE_ADDRESS_MIRROR," \
+        "addressV = TEXTURE_ADDRESS_MIRROR," \
+        "addressW = TEXTURE_ADDRESS_MIRROR," \
         "filter = FILTER_MIN_MAG_MIP_LINEAR)," \
-    "StaticSampler(s1," \
-        "addressU = TEXTURE_ADDRESS_WRAP," \
-        "addressV = TEXTURE_ADDRESS_WRAP," \
-        "addressW = TEXTURE_ADDRESS_WRAP," \
-        "filter = FILTER_MIN_MAG_MIP_LINEAR)," \
-	"StaticSampler(s2," \
-		"addressU = TEXTURE_ADDRESS_WRAP," \
-		"addressV = TEXTURE_ADDRESS_WRAP," \
-		"addressW = TEXTURE_ADDRESS_WRAP," \
-		"filter = FILTER_ANISOTROPIC,"\
-		"maxAnisotropy=2)," \
-	"StaticSampler(s3," \
-		"addressU = TEXTURE_ADDRESS_WRAP," \
-		"addressV = TEXTURE_ADDRESS_WRAP," \
-		"addressW = TEXTURE_ADDRESS_WRAP," \
-		"filter = FILTER_ANISOTROPIC,"\
-		"maxAnisotropy=4)" 
 
-struct VertexInput
+struct ConstantsDesc
 {
-    uint primitive : SV_InstanceID;
+    row_major float4x4 ViewProj;
 };
 
-struct GeometryInput
+struct ModelDesc
 {
-    uint primitive : INDEX;
+    row_major matrix Model;
 };
 
-[RootSignature(AABB_RootSig)]
-GeometryInput main(VertexInput input)
+ConstantBuffer<ConstantsDesc> Constants : register(b0);
+StructuredBuffer<ModelDesc> ModelSRV_CB : register(t0);
+
+struct VertexPosColor
 {
-    GeometryInput output = (GeometryInput) 0;
-	
-    output.primitive = input.primitive;
-	
-    return output;
+    float3 Position : POSITION;
+    float3 Normal : NORMAL;
+    float4 Color : COLOR;
+    float2 Texture : TEXCOORD;
+    
+    uint sv_instance : SV_InstanceID;
+};
+
+struct VertexShaderOutput
+{
+    float4 Position : SV_Position;
+    float3 Normal : NORMAL;
+    float4 Color : COLOR;
+    float2 Texture : TEXCOORD;
+};
+
+[RootSignature(Sprite_RootSig)]
+VertexShaderOutput main(VertexPosColor IN)
+{
+    VertexShaderOutput OUT;
+
+    float4 worldPosition = float4(IN.Position, 1.0f);
+    OUT.Position = mul(worldPosition, Constants.ViewProj);
+    OUT.Normal = mul(float4(IN.Normal, 0.0f), ModelSRV_CB[IN.sv_instance].Model).xyz;
+    OUT.Color = IN.Color;
+    OUT.Texture = IN.Texture;
+
+    return OUT;
 }

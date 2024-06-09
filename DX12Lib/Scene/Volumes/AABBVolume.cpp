@@ -46,10 +46,24 @@ AABBVolume::AABBVolume(DirectX::XMVECTOR min, DirectX::XMVECTOR max)
         mesh = std::make_shared<Mesh>();
 
         std::vector<VertexData> vertices(8);
-        for (size_t i = 0 ; i < 8; ++i)
-        {
-            vertices[i].Position = BOX_VERTS[i];
-        }
+        vertices[0].Position = { DirectX::XMVectorGetX(max), DirectX::XMVectorGetY(max), DirectX::XMVectorGetZ(min) };
+        vertices[1].Position = { DirectX::XMVectorGetX(max), DirectX::XMVectorGetY(min), DirectX::XMVectorGetZ(min) };
+        vertices[2].Position = { DirectX::XMVectorGetX(max), DirectX::XMVectorGetY(max), DirectX::XMVectorGetZ(max) };
+        vertices[3].Position = { DirectX::XMVectorGetX(max), DirectX::XMVectorGetY(min), DirectX::XMVectorGetZ(max) };
+        vertices[4].Position = { DirectX::XMVectorGetX(min), DirectX::XMVectorGetY(max), DirectX::XMVectorGetZ(min) };
+        vertices[5].Position = { DirectX::XMVectorGetX(min), DirectX::XMVectorGetY(min), DirectX::XMVectorGetZ(min) };
+        vertices[6].Position = { DirectX::XMVectorGetX(min), DirectX::XMVectorGetY(max), DirectX::XMVectorGetZ(max) };
+        vertices[7].Position = { DirectX::XMVectorGetX(min), DirectX::XMVectorGetY(min), DirectX::XMVectorGetZ(max) };
+
+        vertices[0].Color = { 1.0f, 1.0f, 1.0f, 1.0f };
+        vertices[1].Color = { 1.0f, 1.0f, 1.0f, 1.0f };
+        vertices[2].Color = { 1.0f, 1.0f, 1.0f, 1.0f };
+        vertices[3].Color = { 1.0f, 1.0f, 1.0f, 1.0f };
+        vertices[4].Color = { 1.0f, 1.0f, 1.0f, 1.0f };
+        vertices[5].Color = { 1.0f, 1.0f, 1.0f, 1.0f };
+        vertices[6].Color = { 1.0f, 1.0f, 1.0f, 1.0f };
+        vertices[7].Color = { 1.0f, 1.0f, 1.0f, 1.0f };
+
         mesh->SetVertices(vertices);
         mesh->SetIndices(BOX_INDICES);
     }

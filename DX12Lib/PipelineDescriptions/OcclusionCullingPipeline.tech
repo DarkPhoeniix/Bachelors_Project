@@ -6,8 +6,8 @@
 	"TopologyType": "triangle",
 
 	"Blend": "PipelineDescriptions\\OcclusionCullingPipeline.blend",
-	"Raster": "PipelineDescriptions\\TriangleRenderPipeline.raster",
-	"Depth": "PipelineDescriptions\\AABBRenderPipeline.depth",
+	"Raster": "PipelineDescriptions\\OcclusionCullingPipeline.raster",
+	"Depth": "PipelineDescriptions\\OcclusionCullingPipeline.depth",
 
 	"RenderTargets": [
 		"BackBuffer"
@@ -44,6 +44,6 @@
 		}
 	],
 
-	"VS": "TriangleMesh_vs.cso",
-	"PS": "TriangleMesh_ps.cso"
+	"VS": "TestAABB_vs.cso",
+	"PS": "TestAABB_ps.cso"
 }

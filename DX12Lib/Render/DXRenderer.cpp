@@ -92,7 +92,7 @@ bool DXRenderer::LoadContent(TaskGPU* loadTask)
         loadTask->SetName("Upload Data");
         Core::GraphicsCommandList* commandList = loadTask->GetCommandLists().front();
 
-        _scene.LoadScene("To\\To.scene", *commandList);
+        _scene.LoadScene("TestOcclusion\\TestOcclusion.scene", *commandList);
 
         commandList->Close();
 
@@ -186,7 +186,7 @@ void DXRenderer::OnRender(Events::RenderEvent& renderEvent, Frame& frame)
 
     // Execute the depth pretest
     {
-        TaskGPU* task = frame.CreateTask(D3D12_COMMAND_LIST_TYPE_DIRECT, &_renderPipeline);
+        TaskGPU* task = frame.CreateTask(D3D12_COMMAND_LIST_TYPE_DIRECT, &_depthPrepassPipeline);
         task->SetName("depth");
         task->AddDependency("clean");
 
@@ -211,7 +211,7 @@ void DXRenderer::OnRender(Events::RenderEvent& renderEvent, Frame& frame)
 
     // Execute the occlusion culling
     {
-        TaskGPU* task = frame.CreateTask(D3D12_COMMAND_LIST_TYPE_DIRECT, &_renderPipeline);
+        TaskGPU* task = frame.CreateTask(D3D12_COMMAND_LIST_TYPE_DIRECT, &_occlusionPipeline);
         task->SetName("occlusion");
         task->AddDependency("depth");
 
