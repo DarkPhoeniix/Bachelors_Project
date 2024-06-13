@@ -92,7 +92,7 @@ bool DXRenderer::LoadContent(TaskGPU* loadTask)
         loadTask->SetName("Upload Data");
         Core::GraphicsCommandList* commandList = loadTask->GetCommandLists().front();
 
-        _scene.LoadScene("TestOcclusion\\TestOcclusion.scene", *commandList);
+        _scene.LoadScene("FruitBowl\\FruitBowl.scene", *commandList);
 
         commandList->Close();
 
@@ -197,7 +197,7 @@ void DXRenderer::OnRender(Events::RenderEvent& renderEvent, Frame& frame)
         commandList->SetGraphicsRootSignature(_depthPrepassPipeline);
 
         commandList->SetViewport(_camera.GetViewport());
-        commandList->SetRenderTarget(&rtv, &dsv);
+        commandList->SetRenderTarget(nullptr, &dsv);
 
         XMMATRIX viewProjMatrix = XMMatrixMultiply(_camera.View(), _camera.Projection());
         commandList->SetConstants(0, sizeof(XMMATRIX) / 4, &viewProjMatrix);
@@ -222,7 +222,7 @@ void DXRenderer::OnRender(Events::RenderEvent& renderEvent, Frame& frame)
         commandList->SetGraphicsRootSignature(_occlusionPipeline);
 
         commandList->SetViewport(_camera.GetViewport());
-        commandList->SetRenderTarget(&rtv, &dsv);
+        commandList->SetRenderTarget(nullptr, &dsv);
 
         XMMATRIX viewProjMatrix = XMMatrixMultiply(_camera.View(), _camera.Projection());
         commandList->SetConstants(0, sizeof(XMMATRIX) / 4, &viewProjMatrix);

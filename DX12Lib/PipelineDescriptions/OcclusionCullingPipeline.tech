@@ -9,9 +9,7 @@
 	"Raster": "PipelineDescriptions\\OcclusionCullingPipeline.raster",
 	"Depth": "PipelineDescriptions\\OcclusionCullingPipeline.depth",
 
-	"RenderTargets": [
-		"BackBuffer"
-	],
+	"RenderTargets": [],
 	"DepthBuffer": "BackBufferDepth",
 	"Layout": [
 		{
@@ -44,6 +42,5 @@
 		}
 	],
 
-	"VS": "TestAABB_vs.cso",
-	"PS": "TestAABB_ps.cso"
+	"VS": "TestAABB_vs.cso"
 }
