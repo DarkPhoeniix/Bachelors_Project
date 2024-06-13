@@ -40,6 +40,11 @@ DXRenderer::~DXRenderer()
     _DXDevice = nullptr;
 }
 
+void DXRenderer::SetScene(const std::string& filepath)
+{
+    _scenePath = filepath;
+}
+
 bool DXRenderer::LoadContent(TaskGPU* loadTask)
 {
     _renderPipeline.Parse("PipelineDescriptions\\TriangleRenderPipeline.tech");
@@ -53,9 +58,7 @@ bool DXRenderer::LoadContent(TaskGPU* loadTask)
 
     // Camera Setup
     {
-        //XMVECTOR pos = XMVectorSet(-30.0f, 40.0f, -50.0f, 1.0f);
-        XMVECTOR pos = XMVectorSet(-90.0f, 37.0f, -230.0f, 1.0f);
-        //XMVECTOR target = XMVectorSet(90.0f, -42.0f, 103.0f, 1.0f);
+        XMVECTOR pos = XMVectorSet(-45.0f, 37.0f, -60.0f, 1.0f);
         XMVECTOR target = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
         XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 
@@ -92,7 +95,7 @@ bool DXRenderer::LoadContent(TaskGPU* loadTask)
         loadTask->SetName("Upload Data");
         Core::GraphicsCommandList* commandList = loadTask->GetCommandLists().front();
 
-        _scene.LoadScene("FruitBowl\\FruitBowl.scene", *commandList);
+        _scene.LoadScene(_scenePath, *commandList);
 
         commandList->Close();
 

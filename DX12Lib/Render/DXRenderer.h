@@ -16,6 +16,7 @@ public:
     DXRenderer(HWND windowHandle);
     ~DXRenderer();
 
+    virtual void SetScene(const std::string& filepath);
     virtual bool LoadContent(TaskGPU* loadTask);
     virtual void UnloadContent();
 
@@ -43,6 +44,7 @@ private:
     Core::DescriptorHeap _texDescHeap;
     std::shared_ptr<Core::Texture> _tex;
 
+    std::string _scenePath;
     Scene _scene;
     Camera _camera;
     bool _isCameraMoving;
